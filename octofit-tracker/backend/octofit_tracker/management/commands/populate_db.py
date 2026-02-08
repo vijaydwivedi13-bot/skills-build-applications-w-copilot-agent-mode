@@ -1,16 +1,25 @@
 from django.core.management.base import BaseCommand
 from octofit_tracker.models import User, Team, Activity, Leaderboard, Workout
+from pymongo import MongoClient
 
 class Command(BaseCommand):
     help = 'Populate the octofit_db database with test data'
 
     def handle(self, *args, **options):
-        # Delete existing data
-        Activity.objects.all().delete()
-        Leaderboard.objects.all().delete()
-        Workout.objects.all().delete()
-        User.objects.all().delete()
-        Team.objects.all().delete()
+        # Clear existing data using PyMongo directly to avoid Djongo ForeignKey issues
+        client = MongoClient('mongodb://localhost:27017/')
+        db = client['octofit_db']
+        
+        try:
+            # Drop collections directly using PyMongo
+            db['octofit_tracker_activity'].delete_many({})
+            db['octofit_tracker_leaderboard'].delete_many({})
+            db['octofit_tracker_workout'].delete_many({})
+            db['octofit_tracker_user'].delete_many({})
+            db['octofit_tracker_team'].delete_many({})
+            self.stdout.write(self.style.SUCCESS('Cleared existing collections'))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'Warning clearing collections: {e}'))
 
         # Create teams
         marvel = Team.objects.create(name='Marvel', description='Marvel superheroes team')
